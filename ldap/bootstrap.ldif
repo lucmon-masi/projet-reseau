@@ -1,0 +1,86 @@
+# ── Organizational Units ─────────────────────────────────────────────────────
+dn: ou=people,dc=reseau,dc=local
+objectClass: organizationalUnit
+ou: people
+
+dn: ou=groups,dc=reseau,dc=local
+objectClass: organizationalUnit
+ou: groups
+
+# ── Users ─────────────────────────────────────────────────────────────────────
+# password: password (plain — change in production)
+
+dn: uid=alice,ou=people,dc=reseau,dc=local
+objectClass: inetOrgPerson
+objectClass: posixAccount
+uid: alice
+cn: Alice Martin
+sn: Martin
+givenName: Alice
+mail: alice@reseau.local
+userPassword: password
+uidNumber: 1001
+gidNumber: 1001
+homeDirectory: /home/alice
+
+dn: uid=bob,ou=people,dc=reseau,dc=local
+objectClass: inetOrgPerson
+objectClass: posixAccount
+uid: bob
+cn: Bob Dupont
+sn: Dupont
+givenName: Bob
+mail: bob@reseau.local
+userPassword: password
+uidNumber: 1002
+gidNumber: 1002
+homeDirectory: /home/bob
+
+dn: uid=charlie,ou=people,dc=reseau,dc=local
+objectClass: inetOrgPerson
+objectClass: posixAccount
+uid: charlie
+cn: Charlie Leclerc
+sn: Leclerc
+givenName: Charlie
+mail: charlie@reseau.local
+userPassword: password
+uidNumber: 1003
+gidNumber: 1003
+homeDirectory: /home/charlie
+
+dn: uid=diana,ou=people,dc=reseau,dc=local
+objectClass: inetOrgPerson
+objectClass: posixAccount
+uid: diana
+cn: Diana Morel
+sn: Morel
+givenName: Diana
+mail: diana@reseau.local
+userPassword: password
+uidNumber: 1004
+gidNumber: 1004
+homeDirectory: /home/diana
+
+# ── Groups ────────────────────────────────────────────────────────────────────
+# teacher → Mastodon admin
+dn: cn=teacher,ou=groups,dc=reseau,dc=local
+objectClass: posixGroup
+cn: teacher
+gidNumber: 2001
+memberUid: alice
+
+# tutor → Mastodon moderator
+dn: cn=tutor,ou=groups,dc=reseau,dc=local
+objectClass: posixGroup
+cn: tutor
+gidNumber: 2002
+memberUid: bob
+
+# student → Mastodon user
+dn: cn=student,ou=groups,dc=reseau,dc=local
+objectClass: posixGroup
+cn: student
+gidNumber: 2003
+memberUid: charlie
+memberUid: diana

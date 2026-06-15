@@ -1,0 +1,213 @@
+/* ── Mastodon-inspired dark theme for Keycloak ─────────────────────────────── */
+
+:root {
+  --mast-bg:        #191b22;
+  --mast-surface:   #282c37;
+  --mast-border:    #393f4f;
+  --mast-purple:    #6364ff;
+  --mast-purple-h:  #563acc;
+  --mast-text:      #ffffff;
+  --mast-text-dim:  #9baec8;
+  --mast-danger:    #e74c3c;
+  --mast-radius:    8px;
+}
+
+/* Page */
+body,
+.login-pf body {
+  background-color: var(--mast-bg) !important;
+  color: var(--mast-text) !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Card */
+#kc-content,
+.card-pf,
+.login-pf-page .card-pf {
+  background-color: var(--mast-surface) !important;
+  border: 1px solid var(--mast-border) !important;
+  border-radius: var(--mast-radius) !important;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.4) !important;
+  padding: 2rem !important;
+}
+
+/* Header / realm name */
+#kc-header,
+#kc-header-wrapper {
+  background-color: var(--mast-bg) !important;
+  color: var(--mast-text) !important;
+  font-size: 1.4rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+  padding: 1.5rem 0 !important;
+}
+
+/* Labels */
+label,
+#kc-form-wrapper label {
+  color: var(--mast-text-dim) !important;
+  font-size: 0.9rem !important;
+  font-weight: 500 !important;
+}
+
+/* Inputs */
+input[type="text"],
+input[type="password"],
+input[type="email"] {
+  background-color: var(--mast-bg) !important;
+  border: 1px solid var(--mast-border) !important;
+  border-radius: var(--mast-radius) !important;
+  color: var(--mast-text) !important;
+  padding: 0.6rem 0.8rem !important;
+  font-size: 1rem !important;
+  width: 100% !important;
+  transition: border-color 0.2s;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="email"]:focus {
+  border-color: var(--mast-purple) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(99,100,255,0.25) !important;
+}
+
+/* PatternFly v4 — wrapper du groupe password (div.pf-c-input-group) */
+.pf-c-input-group {
+  display: flex !important;
+  align-items: stretch !important;
+  width: 100% !important;
+  background-color: var(--mast-bg) !important;
+  border: 1px solid var(--mast-border) !important;
+  border-radius: var(--mast-radius) !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+}
+
+.pf-c-input-group:focus-within {
+  border-color: var(--mast-purple) !important;
+  box-shadow: 0 0 0 2px rgba(99,100,255,0.25) !important;
+}
+
+/* Input password dans le groupe — transparent, flex-grow */
+.pf-c-input-group input.pf-c-form-control,
+.pf-c-input-group input[type="password"],
+.pf-c-input-group input[type="text"] {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  color: var(--mast-text) !important;
+  flex: 1 1 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  padding: 0.6rem 0.8rem !important;
+}
+
+/* Bouton œil (pf-c-button pf-m-control) */
+.pf-c-input-group .pf-c-button.pf-m-control {
+  background-color: transparent !important;
+  border: none !important;
+  border-left: 1px solid var(--mast-border) !important;
+  border-radius: 0 !important;
+  color: var(--mast-text-dim) !important;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  padding: 0.4rem 0.75rem !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+}
+
+.pf-c-input-group .pf-c-button.pf-m-control:hover {
+  background-color: var(--mast-surface) !important;
+  color: var(--mast-text) !important;
+}
+
+/* input.pf-c-form-control standalone (username, hors groupe) */
+input.pf-c-form-control {
+  background-color: var(--mast-bg) !important;
+  border: 1px solid var(--mast-border) !important;
+  border-radius: var(--mast-radius) !important;
+  color: var(--mast-text) !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+input.pf-c-form-control:focus {
+  border-color: var(--mast-purple) !important;
+  box-shadow: 0 0 0 2px rgba(99,100,255,0.25) !important;
+}
+
+/* Primary button */
+.btn-primary,
+input[type="submit"],
+button[type="submit"] {
+  background-color: var(--mast-purple) !important;
+  border: none !important;
+  border-radius: var(--mast-radius) !important;
+  color: #fff !important;
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+  padding: 0.75rem 1.5rem !important;
+  width: 100% !important;
+  cursor: pointer !important;
+  transition: background-color 0.2s;
+}
+
+.btn-primary:hover,
+input[type="submit"]:hover,
+button[type="submit"]:hover {
+  background-color: var(--mast-purple-h) !important;
+}
+
+/* Links */
+a {
+  color: var(--mast-purple) !important;
+}
+
+a:hover {
+  color: var(--mast-purple-h) !important;
+  text-decoration: underline !important;
+}
+
+/* Alerts / errors */
+.alert-error,
+.pf-m-danger {
+  background-color: rgba(231,76,60,0.15) !important;
+  border: 1px solid var(--mast-danger) !important;
+  border-radius: var(--mast-radius) !important;
+  color: #ff6b6b !important;
+  padding: 0.75rem 1rem !important;
+  margin-bottom: 1rem !important;
+}
+
+/* Social/provider buttons */
+.pf-c-button.pf-m-control,
+.zocial,
+[class*="zocial-"] {
+  background-color: var(--mast-surface) !important;
+  border: 1px solid var(--mast-border) !important;
+  border-radius: var(--mast-radius) !important;
+  color: var(--mast-text) !important;
+  width: 100% !important;
+  padding: 0.65rem !important;
+  margin-bottom: 0.5rem !important;
+  transition: background-color 0.2s;
+}
+
+/* Hide Keycloak logo if any */
+#kc-logo { display: none !important; }
+
+/* Divider */
+#kc-social-providers hr,
+.login-pf-signup {
+  border-color: var(--mast-border) !important;
+}
+
+/* Checkbox */
+input[type="checkbox"] {
+  accent-color: var(--mast-purple) !important;
+}

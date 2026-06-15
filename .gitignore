@@ -1,0 +1,4 @@
+nginx/certs/
+mastodon/certs/
+*.key
+*.pem

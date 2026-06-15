@@ -1,0 +1,180 @@
+services:
+
+  # ── LDAP ────────────────────────────────────────────────────────────────────
+  openldap:
+    build: ./ldap
+    container_name: openldap
+    environment:
+      LDAP_ORGANISATION: "Réseau Local"
+      LDAP_DOMAIN: "reseau.local"
+      LDAP_ADMIN_PASSWORD: "adminpassword"
+      LDAP_TLS: "false"
+    volumes:
+      - openldap_data:/var/lib/ldap
+      - openldap_config:/etc/ldap/slapd.d
+    networks:
+      reseau:
+        ipv4_address: 172.33.0.2
+
+  # ── KEYCLOAK ─────────────────────────────────────────────────────────────────
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.5
+    container_name: keycloak-reseau
+    command: start-dev --import-realm
+    environment:
+      KC_HTTP_ENABLED: "true"
+      KC_HOSTNAME_STRICT: "false"
+      KC_PROXY_HEADERS: xforwarded
+      KC_SPI_LOGIN_PROTOCOL_OPENID_CONNECT_LEGACY_LOGOUT_REDIRECT_URI: "true"
+      KC_DEFAULT_THEME: mastodon
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    ports:
+      - "9080:8080"   # admin HTTP direct (sync-ldap, debug)
+    volumes:
+      - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+      - keycloak_data:/opt/keycloak/data
+      - ./keycloak/theme/mastodon:/opt/keycloak/themes/mastodon:ro
+    depends_on:
+      - openldap
+    networks:
+      reseau:
+        ipv4_address: 172.33.0.3
+
+  # ── MASTODON DB ───────────────────────────────────────────────────────────────
+  mastodon_db:
+    image: postgres:16-alpine
+    container_name: mastodon_db
+    environment:
+      POSTGRES_DB: mastodon_production
+      POSTGRES_USER: mastodon
+      POSTGRES_PASSWORD: mastodon
+    volumes:
+      - mastodon_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mastodon -d mastodon_production"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      reseau:
+        ipv4_address: 172.33.0.4
+
+  # ── MASTODON REDIS ────────────────────────────────────────────────────────────
+  mastodon_redis:
+    image: redis:7-alpine
+    container_name: mastodon_redis
+    volumes:
+      - mastodon_redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      reseau:
+        ipv4_address: 172.33.0.5
+
+  # ── MASTODON DB MIGRATE (one-shot, runs before web/sidekiq/streaming) ─────────
+  mastodon_db_migrate:
+    build:
+      context: .
+      dockerfile: mastodon/Dockerfile
+    container_name: mastodon_db_migrate
+    command: bundle exec rails db:prepare
+    restart: "no"
+    env_file: ./mastodon/.env.production
+    extra_hosts:
+      - "keycloak.reseau.local:172.33.0.10"
+      - "mastodon.reseau.local:172.33.0.10"
+    depends_on:
+      mastodon_db:
+        condition: service_healthy
+      mastodon_redis:
+        condition: service_healthy
+    networks:
+      reseau:
+        ipv4_address: 172.33.0.9
+
+  # ── MASTODON WEB ──────────────────────────────────────────────────────────────
+  mastodon_web:
+    build:
+      context: .
+      dockerfile: mastodon/Dockerfile
+    container_name: mastodon_web
+    command: bundle exec rails s -p 3000 -b 0.0.0.0
+    env_file: ./mastodon/.env.production
+    extra_hosts:
+      - "keycloak.reseau.local:172.33.0.10"
+      - "mastodon.reseau.local:172.33.0.10"
+    depends_on:
+      mastodon_db_migrate:
+        condition: service_completed_successfully
+      keycloak:
+        condition: service_started
+    networks:
+      reseau:
+        ipv4_address: 172.33.0.6
+
+  # ── MASTODON SIDEKIQ ──────────────────────────────────────────────────────────
+  mastodon_sidekiq:
+    build:
+      context: .
+      dockerfile: mastodon/Dockerfile
+    container_name: mastodon_sidekiq
+    command: bundle exec sidekiq
+    env_file: ./mastodon/.env.production
+    extra_hosts:
+      - "keycloak.reseau.local:172.33.0.10"
+      - "mastodon.reseau.local:172.33.0.10"
+    depends_on:
+      mastodon_db_migrate:
+        condition: service_completed_successfully
+    networks:
+      reseau:
+        ipv4_address: 172.33.0.7
+
+  # ── MASTODON STREAMING ────────────────────────────────────────────────────────
+  mastodon_streaming:
+    image: ghcr.io/mastodon/mastodon-streaming:v4.3.3
+    container_name: mastodon_streaming
+    env_file: ./mastodon/.env.production
+    environment:
+      PORT: "4000"
+    depends_on:
+      mastodon_db_migrate:
+        condition: service_completed_successfully
+    networks:
+      reseau:
+        ipv4_address: 172.33.0.8
+
+  # ── NGINX ─────────────────────────────────────────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    ports:
+      - "8080:80"
+      - "8443:8443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      - mastodon_web
+      - keycloak
+    networks:
+      reseau:
+        ipv4_address: 172.33.0.10
+
+volumes:
+  mastodon_db:
+  mastodon_redis:
+  keycloak_data:
+  openldap_data:
+  openldap_config:
+
+networks:
+  reseau:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.33.0.0/16

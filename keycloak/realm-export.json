@@ -1,0 +1,173 @@
+{
+  "realm": "reseau",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": false,
+
+  "roles": {
+    "realm": [
+      { "name": "teacher",  "description": "Enseignant → Mastodon admin" },
+      { "name": "tutor",    "description": "Tuteur → Mastodon moderator" },
+      { "name": "student",  "description": "Étudiant → Mastodon user" }
+    ]
+  },
+
+  "clients": [
+    {
+      "clientId": "mastodon",
+      "name": "Mastodon",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "mastodon-secret",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "publicClient": false,
+      "frontchannelLogout": true,
+      "protocol": "openid-connect",
+      "fullScopeAllowed": true,
+      "redirectUris": [
+        "https://mastodon.reseau.local:8443/*"
+      ],
+      "webOrigins": [
+        "https://mastodon.reseau.local:8443"
+      ],
+      "attributes": {
+        "post.logout.redirect.uris": "https://mastodon.reseau.local:8443/*",
+        "frontchannel.logout.url": "",
+        "backchannel.logout.session.required": "true"
+      },
+      "protocolMappers": [
+        {
+          "name": "realm-roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "multivalued": "true",
+            "claim.name": "roles",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+
+  "components": {
+    "org.keycloak.storage.UserStorageProvider": [
+      {
+        "id": "ldap-provider-id",
+        "name": "ldap",
+        "providerId": "ldap",
+        "config": {
+          "enabled":                    ["true"],
+          "priority":                   ["0"],
+          "fullSyncPeriod":             ["-1"],
+          "changedSyncPeriod":          ["-1"],
+          "cachePolicy":                ["DEFAULT"],
+          "batchSizeForSync":           ["1000"],
+          "editMode":                   ["READ_ONLY"],
+          "syncRegistrations":          ["false"],
+          "vendor":                     ["other"],
+          "usernameLDAPAttribute":      ["uid"],
+          "rdnLDAPAttribute":           ["uid"],
+          "uuidLDAPAttribute":          ["entryUUID"],
+          "userObjectClasses":          ["inetOrgPerson"],
+          "connectionUrl":              ["ldap://openldap:389"],
+          "usersDn":                    ["ou=people,dc=reseau,dc=local"],
+          "authType":                   ["simple"],
+          "bindDn":                     ["cn=admin,dc=reseau,dc=local"],
+          "bindCredential":             ["adminpassword"],
+          "customUserSearchFilter":     [""],
+          "searchScope":                ["1"],
+          "validatePasswordPolicy":     ["false"],
+          "trustEmail":                 ["true"],
+          "useTruststoreSpi":           ["never"],
+          "connectionPooling":          ["true"],
+          "pagination":                 ["true"],
+          "allowKerberosAuthentication":["false"],
+          "debug":                      ["false"],
+          "useKerberosForPasswordAuthentication": ["false"]
+        },
+        "subComponents": {
+          "org.keycloak.storage.ldap.mappers.LDAPStorageMapper": [
+            {
+              "id": "mapper-username",
+              "name": "username",
+              "providerId": "user-attribute-ldap-mapper",
+              "config": {
+                "ldap.attribute":              ["uid"],
+                "is.mandatory.in.ldap":        ["true"],
+                "always.read.value.from.ldap": ["false"],
+                "read.only":                   ["true"],
+                "user.model.attribute":        ["username"]
+              }
+            },
+            {
+              "id": "mapper-email",
+              "name": "email",
+              "providerId": "user-attribute-ldap-mapper",
+              "config": {
+                "ldap.attribute":              ["mail"],
+                "is.mandatory.in.ldap":        ["false"],
+                "always.read.value.from.ldap": ["false"],
+                "read.only":                   ["true"],
+                "user.model.attribute":        ["email"]
+              }
+            },
+            {
+              "id": "mapper-firstname",
+              "name": "first name",
+              "providerId": "user-attribute-ldap-mapper",
+              "config": {
+                "ldap.attribute":              ["givenName"],
+                "is.mandatory.in.ldap":        ["true"],
+                "always.read.value.from.ldap": ["true"],
+                "read.only":                   ["true"],
+                "user.model.attribute":        ["firstName"]
+              }
+            },
+            {
+              "id": "mapper-lastname",
+              "name": "last name",
+              "providerId": "user-attribute-ldap-mapper",
+              "config": {
+                "ldap.attribute":              ["sn"],
+                "is.mandatory.in.ldap":        ["true"],
+                "always.read.value.from.ldap": ["true"],
+                "read.only":                   ["true"],
+                "user.model.attribute":        ["lastName"]
+              }
+            },
+            {
+              "id": "mapper-roles",
+              "name": "role mapper",
+              "providerId": "role-ldap-mapper",
+              "config": {
+                "mode":                               ["READ_ONLY"],
+                "roles.dn":                           ["ou=groups,dc=reseau,dc=local"],
+                "role.name.ldap.attribute":           ["cn"],
+                "role.object.classes":                ["posixGroup"],
+                "membership.ldap.attribute":          ["memberUid"],
+                "membership.attribute.type":          ["UID"],
+                "membership.user.ldap.attribute":     ["uid"],
+                "roles.retrieval.strategy":           ["LOAD_ROLES_BY_MEMBER_ATTRIBUTE"],
+                "use.realm.roles.mapping":            ["true"],
+                "client.id":                          [""]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

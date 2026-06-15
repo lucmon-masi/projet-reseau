@@ -1,0 +1,75 @@
+= content_for :page_title do
+  Choisir votre nom d'utilisateur
+
+.form-container
+  .logo-container
+    = image_tag asset_pack_path('media/images/logo.svg'), alt: 'Mastodon', class: 'logo'
+
+  %h2 Bienvenue sur le réseau Hénallux
+
+  %p.lead
+    Complétez votre profil pour commencer.
+
+  = form_with url: '/auth/choose_username', method: :post, local: true do |f|
+    - if flash[:alert]
+      .flash-message.alert= flash[:alert]
+
+    .field-group
+      = f.label :username, 'Nom d\'utilisateur'
+      .input-with-prefix
+        %span.prefix @
+        = f.text_field :username,
+            value: @suggested,
+            placeholder: 'votre_nom',
+            autocomplete: 'off',
+            autofocus: true,
+            maxlength: 30,
+            pattern: '[a-zA-Z0-9_]+',
+            required: true
+      %p.hint
+        Lettres, chiffres et _ uniquement. Maximum 30 caractères.
+
+    - if @role == 'student'
+      .field-group
+        = f.label :field_annee, 'Année'
+        = f.select :field_annee,
+            [['L1', 'L1'], ['L2', 'L2'], ['L3', 'L3'], ['M1', 'M1'], ['M2', 'M2']],
+            { include_blank: 'Sélectionner...' },
+            required: true
+
+      .field-group
+        = f.label :field_matieres, 'Matière(s) où vous cherchez de l\'aide'
+        = f.text_field :field_matieres,
+            placeholder: 'ex: Mathématiques, Physique',
+            autocomplete: 'off'
+
+    - elsif @role == 'tutor'
+      .field-group
+        = f.label :field_matieres, 'Matière(s) que vous encadrez'
+        = f.text_field :field_matieres,
+            placeholder: 'ex: Mathématiques, Algorithmique',
+            autocomplete: 'off',
+            required: true
+
+      .field-group
+        = f.label :field_dispos, 'Disponibilités'
+        = f.text_field :field_dispos,
+            placeholder: 'ex: Lun-Mer 14h-16h',
+            autocomplete: 'off',
+            required: true
+
+    - elsif @role == 'teacher'
+      .field-group
+        = f.label :field_matieres, 'Matière(s) enseignée(s)'
+        = f.text_field :field_matieres,
+            placeholder: 'ex: Réseaux, Sécurité informatique',
+            autocomplete: 'off',
+            required: true
+
+      .field-group
+        = f.label :field_annee, 'Année (optionnel)'
+        = f.text_field :field_annee,
+            placeholder: 'ex: L2, M1',
+            autocomplete: 'off'
+
+    = f.submit 'Confirmer', class: 'button'

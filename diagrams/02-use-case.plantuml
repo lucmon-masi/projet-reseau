@@ -1,0 +1,45 @@
+@startuml
+left to right direction
+
+actor "Utilisateur LDAP" as User
+actor "Administrateur" as Admin
+
+rectangle "Mastodon via SSO" {
+    usecase "Se connecter\nvia Keycloak" as UC1
+    usecase "Se déconnecter\n(Single Logout)" as UC2
+    usecase "Publier un statut" as UC3
+    usecase "Modérer du contenu" as UC4
+    usecase "Administrer Mastodon" as UC5
+}
+
+rectangle "Gestion des comptes" {
+    usecase "Créer un utilisateur\n(create-user.py)" as UC6
+    usecase "Synchroniser LDAP\n→ Keycloak" as UC7
+}
+
+User --> UC1
+User --> UC2
+User --> UC3
+
+UC1 ..> UC3 : <<include>>
+
+Admin --> UC4
+Admin --> UC5
+Admin --> UC6
+UC6 ..> UC7 : <<include>>
+
+note right of UC1
+  Authentification OIDC
+  via Keycloak
+  Rôle attribué automatiquement :
+  teacher  → Admin
+  tutor    → Modérateur
+  student  → Utilisateur
+end note
+
+note right of UC2
+  id_token_hint envoyé
+  à Keycloak pour invalider
+  la session SSO
+end note
+@enduml
