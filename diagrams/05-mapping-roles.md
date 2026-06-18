@@ -17,7 +17,7 @@ flowchart LR
         M1["UserRole: Admin"]
         M2["UserRole: Moderator"]
         M3["UserRole: User"]
-        CB["OidcRoleSync<br/>(initializer Ruby)"]
+        CB["ChooseUsernameController<br/>(Ruby)"]
     end
 
     G1 -->|"role-ldap-mapper"| R1

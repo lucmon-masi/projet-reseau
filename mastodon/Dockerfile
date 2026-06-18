@@ -17,6 +17,7 @@ COPY mastodon/patches/application.html.haml         /opt/mastodon/app/views/layo
 COPY mastodon/patches/content_security_policy.rb   /opt/mastodon/config/initializers/content_security_policy.rb
 COPY mastodon/initializers/oidc_username_chooser.rb /opt/mastodon/config/initializers/oidc_username_chooser.rb
 COPY mastodon/initializers/setup_featured_tags.rb   /opt/mastodon/config/initializers/setup_featured_tags.rb
+COPY mastodon/initializers/audit_log.rb             /opt/mastodon/config/initializers/audit_log.rb
 COPY mastodon/controllers/choose_username_controller.rb /opt/mastodon/app/controllers/auth/choose_username_controller.rb
 COPY mastodon/views/choose_username/show.html.haml  /opt/mastodon/app/views/auth/choose_username/show.html.haml
 COPY mastodon/patches/routes.rb                     /opt/mastodon/config/routes.rb

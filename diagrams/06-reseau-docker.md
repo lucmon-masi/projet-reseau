@@ -2,40 +2,35 @@
 graph TB
     Host["🖥️ Machine hôte<br/>127.0.0.1"]
 
-    subgraph Net["Réseau Docker bridge — 172.33.0.0/16"]
-        N["nginx<br/>172.33.0.10 :8443"]
+    Host -->|"port 443 / 80"| N
 
-        subgraph IAM["Identité"]
-            KC["keycloak<br/>172.33.0.3 :8080"]
-            LDAP["openldap<br/>172.33.0.2 :389"]
-        end
-
-        subgraph App["Mastodon"]
-            WEB["mastodon_web<br/>172.33.0.6 :3000"]
-            SID["mastodon_sidekiq<br/>172.33.0.7"]
-            STR["mastodon_streaming<br/>172.33.0.8 :4000"]
-        end
-
-        subgraph Data["Données"]
-            DB["mastodon_db<br/>172.33.0.4 :5432"]
-            RED["mastodon_redis<br/>172.33.0.5 :6379"]
-        end
+    subgraph Backend["Réseau backend — 172.33.1.0/24"]
+        KC["keycloak<br/>172.33.1.3 / 172.33.2.3<br/>:8080"]
+        LDAP["openldap<br/>172.33.1.2 :389"]
+        KC <-->|"LDAP :389"| LDAP
     end
 
-    Host -->|"port 8443"| N
-    Host -->|"port 9080 admin"| KC
+    subgraph Frontend["Réseau frontend — 172.33.2.0/24"]
+        N["nginx<br/>172.33.2.10<br/>:443 / :8443"]
+        WEB["mastodon_web<br/>172.33.2.6 :3000"]
+        SID["mastodon_sidekiq<br/>172.33.2.7"]
+        STR["mastodon_streaming<br/>172.33.2.8 :4000"]
+    end
 
-    N <-->|"mastodon.reseau.local"| WEB
-    N <-->|"keycloak.reseau.local"| KC
-    N --> STR
+    subgraph DB["Réseau db — 172.33.3.0/24"]
+        PG["mastodon_db<br/>172.33.3.4 :5432 (SSL)"]
+        RED["mastodon_redis<br/>172.33.3.5 :6379 (auth)"]
+    end
 
-    KC <-->|"LDAP :389"| LDAP
-    KC <-->|"OIDC redirect"| N
+    N -->|"mastodon.reseau.local"| WEB
+    N -->|"keycloak.reseau.local"| KC
+    N -->|"WebSocket"| STR
 
-    WEB <-->|"OIDC token exchange<br/>via nginx"| N
+    WEB -->|"OIDC discovery"| KC
+    KC -->|"OIDC redirect"| N
 
-    WEB --> DB
+    WEB --> PG
     WEB --> RED
-    SID --> DB
+    SID --> PG
     SID --> RED
 ```

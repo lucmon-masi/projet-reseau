@@ -2,7 +2,7 @@
 sequenceDiagram
     actor User as Utilisateur
     participant Browser as Navigateur
-    participant Nginx as Nginx :8443
+    participant Nginx as Nginx :443
     participant Mastodon as Mastodon (Rails)
     participant Keycloak as Keycloak
 
@@ -23,12 +23,12 @@ sequenceDiagram
     Nginx-->>Browser: Redirect
     deactivate Nginx
 
-    Browser->>Nginx: GET keycloak.reseau.local:8443/realms/reseau/.../logout
+    Browser->>Nginx: GET keycloak.reseau.local/realms/reseau/.../logout
     activate Nginx
     Nginx->>Keycloak: GET /logout?id_token_hint=<token>
     activate Keycloak
     Keycloak->>Keycloak: Invalide session SSO
-    Keycloak-->>Nginx: Redirect → mastodon.reseau.local:8443/
+    Keycloak-->>Nginx: Redirect → mastodon.reseau.local/
     deactivate Keycloak
     Nginx-->>Browser: Redirect /
     deactivate Nginx

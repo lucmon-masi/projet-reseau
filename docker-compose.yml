@@ -12,9 +12,11 @@ services:
     volumes:
       - openldap_data:/var/lib/ldap
       - openldap_config:/etc/ldap/slapd.d
+    security_opt:
+      - no-new-privileges:true
     networks:
-      reseau:
-        ipv4_address: 172.33.0.2
+      backend:           # LDAP uniquement accessible depuis Keycloak
+        ipv4_address: 172.33.1.2
 
   # ── KEYCLOAK ─────────────────────────────────────────────────────────────────
   keycloak:
@@ -29,21 +31,23 @@ services:
       KC_DEFAULT_THEME: mastodon
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
-    ports:
-      - "9080:8080"   # admin HTTP direct (sync-ldap, debug)
     volumes:
       - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
       - keycloak_data:/opt/keycloak/data
       - ./keycloak/theme/mastodon:/opt/keycloak/themes/mastodon:ro
+    security_opt:
+      - no-new-privileges:true
     depends_on:
       - openldap
     networks:
-      reseau:
-        ipv4_address: 172.33.0.3
+      backend:           # Keycloak ↔ LDAP
+        ipv4_address: 172.33.1.3
+      frontend:          # Keycloak ↔ Nginx
+        ipv4_address: 172.33.2.3
 
   # ── MASTODON DB ───────────────────────────────────────────────────────────────
   mastodon_db:
-    image: postgres:16-alpine
+    build: ./postgres
     container_name: mastodon_db
     environment:
       POSTGRES_DB: mastodon_production
@@ -51,31 +55,42 @@ services:
       POSTGRES_PASSWORD: mastodon
     volumes:
       - mastodon_db:/var/lib/postgresql/data
+      - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+    command: >
+      postgres
+        -c config_file=/etc/postgresql/postgresql.conf
+        -c hba_file=/etc/postgresql/pg_hba.conf
+    security_opt:
+      - no-new-privileges:true
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U mastodon -d mastodon_production"]
       interval: 5s
       timeout: 5s
       retries: 10
     networks:
-      reseau:
-        ipv4_address: 172.33.0.4
+      db:                # DB uniquement accessible depuis Mastodon
+        ipv4_address: 172.33.3.4
 
   # ── MASTODON REDIS ────────────────────────────────────────────────────────────
   mastodon_redis:
     image: redis:7-alpine
     container_name: mastodon_redis
+    command: redis-server --requirepass redispassword
     volumes:
       - mastodon_redis:/data
+    security_opt:
+      - no-new-privileges:true
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "redispassword", "ping"]
       interval: 5s
       timeout: 5s
       retries: 10
     networks:
-      reseau:
-        ipv4_address: 172.33.0.5
+      db:                # Redis uniquement accessible depuis Mastodon
+        ipv4_address: 172.33.3.5
 
-  # ── MASTODON DB MIGRATE (one-shot, runs before web/sidekiq/streaming) ─────────
+  # ── MASTODON DB MIGRATE ───────────────────────────────────────────────────────
   mastodon_db_migrate:
     build:
       context: .
@@ -85,16 +100,18 @@ services:
     restart: "no"
     env_file: ./mastodon/.env.production
     extra_hosts:
-      - "keycloak.reseau.local:172.33.0.10"
-      - "mastodon.reseau.local:172.33.0.10"
+      - "keycloak.reseau.local:172.33.2.10"
+      - "mastodon.reseau.local:172.33.2.10"
+    security_opt:
+      - no-new-privileges:true
     depends_on:
       mastodon_db:
         condition: service_healthy
       mastodon_redis:
         condition: service_healthy
     networks:
-      reseau:
-        ipv4_address: 172.33.0.9
+      db:
+        ipv4_address: 172.33.3.9
 
   # ── MASTODON WEB ──────────────────────────────────────────────────────────────
   mastodon_web:
@@ -102,19 +119,25 @@ services:
       context: .
       dockerfile: mastodon/Dockerfile
     container_name: mastodon_web
-    command: bundle exec rails s -p 3000 -b 0.0.0.0
+    command: bash -c "rm -f tmp/pids/server.pid && bundle exec rails s -p 3000 -b 0.0.0.0"
     env_file: ./mastodon/.env.production
     extra_hosts:
-      - "keycloak.reseau.local:172.33.0.10"
-      - "mastodon.reseau.local:172.33.0.10"
+      - "keycloak.reseau.local:172.33.2.10"
+      - "mastodon.reseau.local:172.33.2.10"
+    volumes:
+      - mastodon_system:/opt/mastodon/public/system
+    security_opt:
+      - no-new-privileges:true
     depends_on:
       mastodon_db_migrate:
         condition: service_completed_successfully
       keycloak:
         condition: service_started
     networks:
-      reseau:
-        ipv4_address: 172.33.0.6
+      frontend:          # Mastodon ↔ Nginx
+        ipv4_address: 172.33.2.6
+      db:                # Mastodon ↔ DB/Redis
+        ipv4_address: 172.33.3.6
 
   # ── MASTODON SIDEKIQ ──────────────────────────────────────────────────────────
   mastodon_sidekiq:
@@ -125,14 +148,20 @@ services:
     command: bundle exec sidekiq
     env_file: ./mastodon/.env.production
     extra_hosts:
-      - "keycloak.reseau.local:172.33.0.10"
-      - "mastodon.reseau.local:172.33.0.10"
+      - "keycloak.reseau.local:172.33.2.10"
+      - "mastodon.reseau.local:172.33.2.10"
+    volumes:
+      - mastodon_system:/opt/mastodon/public/system
+    security_opt:
+      - no-new-privileges:true
     depends_on:
       mastodon_db_migrate:
         condition: service_completed_successfully
     networks:
-      reseau:
-        ipv4_address: 172.33.0.7
+      frontend:
+        ipv4_address: 172.33.2.7
+      db:
+        ipv4_address: 172.33.3.7
 
   # ── MASTODON STREAMING ────────────────────────────────────────────────────────
   mastodon_streaming:
@@ -141,40 +170,72 @@ services:
     env_file: ./mastodon/.env.production
     environment:
       PORT: "4000"
+      DB_SSLMODE: "require"
+      NODE_TLS_REJECT_UNAUTHORIZED: "0"
+    security_opt:
+      - no-new-privileges:true
     depends_on:
       mastodon_db_migrate:
         condition: service_completed_successfully
     networks:
-      reseau:
-        ipv4_address: 172.33.0.8
+      frontend:
+        ipv4_address: 172.33.2.8
+      db:
+        ipv4_address: 172.33.3.8
 
   # ── NGINX ─────────────────────────────────────────────────────────────────────
   nginx:
     image: nginx:alpine
     container_name: nginx
     ports:
-      - "8080:80"
+      - "80:80"
+      - "443:443"
       - "8443:8443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/certs:/etc/nginx/certs:ro
+      - nginx_logs:/var/log/nginx
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
     depends_on:
       - mastodon_web
       - keycloak
     networks:
-      reseau:
-        ipv4_address: 172.33.0.10
+      frontend:          # Nginx ↔ Mastodon + Keycloak
+        ipv4_address: 172.33.2.10
 
 volumes:
   mastodon_db:
   mastodon_redis:
+  mastodon_system:
   keycloak_data:
   openldap_data:
   openldap_config:
+  nginx_logs:
 
 networks:
-  reseau:
+  # Réseau backend — LDAP + Keycloak uniquement (isolé de Mastodon)
+  backend:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.33.0.0/16
+        - subnet: 172.33.1.0/24
+
+  # Réseau frontend — Nginx + Keycloak + Mastodon
+  frontend:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.33.2.0/24
+
+  # Réseau DB — Mastodon + PostgreSQL + Redis uniquement
+  db:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.33.3.0/24

@@ -1,4 +1,4 @@
-.PHONY: setup certs generate-vapid hosts up down logs clean sync-ldap reset-demo create-user
+.PHONY: setup certs generate-vapid hosts up down logs clean sync-ldap reset-demo create-user rotate-logs
 
 # ── First-time setup ──────────────────────────────────────────────────────────
 setup: certs generate-vapid
@@ -55,3 +55,7 @@ create-user:
 # Remet à zéro pour une démo propre (supprime tous les comptes sauf admin)
 reset-demo:
 	@python3 scripts/reset-demo.py
+
+# Rotation des logs Nginx (rétention 30 jours — RGPD)
+rotate-logs:
+	@bash scripts/rotate-logs.sh

@@ -1,4 +1,13 @@
 nginx/certs/
 mastodon/certs/
+postgres/certs/
 *.key
 *.pem
+*.crt
+
+# Secrets — ne jamais commiter
+mastodon/.env.production
+
+# Fichier exemple sans secrets à commiter à la place
+# (copier .env.production.example → .env.production et remplir)
+

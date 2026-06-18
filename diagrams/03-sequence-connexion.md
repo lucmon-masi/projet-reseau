@@ -2,12 +2,12 @@
 sequenceDiagram
     actor User as Utilisateur
     participant Browser as Navigateur
-    participant Nginx as Nginx :8443
+    participant Nginx as Nginx :443
     participant Mastodon as Mastodon (Rails)
     participant Keycloak as Keycloak
     participant LDAP as OpenLDAP
 
-    User->>Browser: Ouvre mastodon.reseau.local:8443
+    User->>Browser: Ouvre mastodon.reseau.local
     activate Browser
     Browser->>Nginx: GET / (HTTPS)
     activate Nginx
@@ -28,7 +28,7 @@ sequenceDiagram
     Nginx-->>Browser: Redirect
     deactivate Nginx
 
-    Browser->>Nginx: GET keycloak.reseau.local:8443/realms/reseau/...
+    Browser->>Nginx: GET keycloak.reseau.local/realms/reseau/...
     activate Nginx
     Nginx->>Keycloak: GET /realms/reseau/protocol/openid-connect/auth
     activate Keycloak
@@ -55,7 +55,7 @@ sequenceDiagram
     activate Nginx
     Nginx->>Mastodon: GET /auth/auth/openid_connect/callback
     activate Mastodon
-    Mastodon->>Nginx: POST keycloak.reseau.local:8443 /token
+    Mastodon->>Nginx: POST keycloak.reseau.local /token
     activate Nginx
     Nginx->>Keycloak: POST /token (échange code → tokens)
     activate Keycloak
@@ -64,7 +64,7 @@ sequenceDiagram
     Nginx-->>Mastodon: Tokens
     deactivate Nginx
 
-    Note over Mastodon: OidcRoleSync#openid_connect<br/>Sauvegarde id_token en session<br/>Mappe teacher → Admin (role_id)
+    Note over Mastodon: ChooseUsernameController<br/>Sauvegarde id_token en session<br/>Mappe teacher → Admin (role_id)
     Mastodon->>Mastodon: user.update_column(:role_id, Admin.id)
     Mastodon-->>Nginx: Session Mastodon créée, redirect /
     deactivate Mastodon
